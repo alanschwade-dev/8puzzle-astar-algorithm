@@ -1,6 +1,6 @@
 const estadoObjetivo = "123456780";
 
-// Mapeamento dos vizinhos: Para cada posição (0 a 8) no array/string, 
+// Mapeamento dos vizinhos: Regras de transição respeitando as bordas [cite: 103]
 const movimentosValidos = {
     0: [1, 3],
     1: [0, 2, 4],
@@ -13,7 +13,31 @@ const movimentosValidos = {
     8: [5, 7]
 };
 
-//Função principal disparada pelo botão
+// Função para calcular a Heurística h(n) - Distância de Manhattan [cite: 312, 408]
+function calcularManhattan(estado) {
+    const objetivoPos = {
+        '1': [0, 0], '2': [0, 1], '3': [0, 2],
+        '4': [1, 0], '5': [1, 1], '6': [1, 2],
+        '7': [2, 0], '8': [2, 1], '0': [2, 2]
+    };
+    let distanciaTotal = 0;
+
+    for (let i = 0; i < 9; i++) {
+        let num = estado[i];
+        if (num !== '0') {
+            // Posição atual no grid 3x3
+            let atualX = Math.floor(i / 3);
+            let atualY = i % 3;
+            // Posição onde a peça deveria estar
+            let [objX, objY] = objetivoPos[num];
+            // Soma das distâncias horizontais e verticais [cite: 408]
+            distanciaTotal += Math.abs(atualX - objX) + Math.abs(atualY - objY);
+        }
+    }
+    return distanciaTotal;
+}
+
+// Função principal disparada pelo botão
 function iniciarBusca() {
     const input = document.getElementById('initialState').value;
     
@@ -23,65 +47,71 @@ function iniciarBusca() {
     }
 
     desenharTabuleiro(input);
-    resolverBFS(input);
+    resolverAStar(input);
 }
 
-//Busca em Largura (BFS)
-function resolverBFS(estadoInicial) {
-    //Informações da fila
+// Algoritmo A* (Busca pela melhor escolha) [cite: 904-906]
+function resolverAStar(estadoInicial) {
+    // A estrutura armazena g(n), h(n) e f(n) = g(n) + h(n) [cite: 340, 906]
     let fila = [{ 
         estado: estadoInicial, 
-        caminho: [], //historico de movimentações
-        posicaoZero: estadoInicial.indexOf('0') //espaço vazio
+        caminho: [], 
+        posicaoZero: estadoInicial.indexOf('0'),
+        g: 0, // Custo do nó inicial até n [cite: 907]
+        h: calcularManhattan(estadoInicial), // Estimativa de custo até a meta [cite: 908]
+        f: calcularManhattan(estadoInicial) // f(n) = g(n) + h(n)
     }];
     
-    // Set para não repetir estados e evitar loop
+    // Conjunto CLOSED para evitar repetições e loops [cite: 1626, 1651]
     let visitados = new Set();
     visitados.add(estadoInicial);
 
     let estadosTestados = 0;
 
     while (fila.length > 0) {
-        // Tira o primeiro estado da fila
+        // Simulação de Fila de Prioridade: escolhe o menor f(n) [cite: 1631, 1636]
+        fila.sort((a, b) => a.f - b.f);
+        
         let atual = fila.shift();
         estadosTestados++;
 
-        // Checar o objetivo
+        // Checa se o estado n é o objetivo [cite: 1649]
         if (atual.estado === estadoObjetivo) {
             exibirResultados(atual.caminho, estadosTestados);
             return;
         }
 
-        // Pega as posições para onde o 0 pode ir
         let movimentosPossiveis = movimentosValidos[atual.posicaoZero];
 
         for (let proximaPosicao of movimentosPossiveis) {
-            // Gera o novo estado trocando o 0 com o número vizinho
+            // Gera sucessores trocando o 0 com o vizinho [cite: 1653, 1657]
             let novoEstado = trocarCaracteres(atual.estado, atual.posicaoZero, proximaPosicao);
 
-            // Se ainda não visitamos essa configuração de tabuleiro
             if (!visitados.has(novoEstado)) {
                 visitados.add(novoEstado);
                 
-                // Mostrar o log do caminho)
                 let numeroMovido = atual.estado[proximaPosicao];
-                
-                // Coloca o novo estado no final da fila para ser testado depois
+                let novoG = atual.g + 1; // custo g(n) acumulado
+                let novoH = calcularManhattan(novoEstado); // custo h(n) estimado
+
+                // Insere sucessor na lista OPEN com prioridade f(n) [cite: 1661]
                 fila.push({
                     estado: novoEstado,
-                    caminho: [...atual.caminho, numeroMovido], // Adiciona o movimento ao histórico
-                    posicaoZero: proximaPosicao
+                    caminho: [...atual.caminho, numeroMovido],
+                    posicaoZero: proximaPosicao,
+                    g: novoG,
+                    h: novoH,
+                    f: novoG + novoH // Equação f(n) = g(n) + h(n) [cite: 340]
                 });
             }
         }
     }
 
-    alert("Solução não encontrada para este estado!");
+    alert("Solução não encontrada!");
 }
 
-// Funções Auxiliares
+// --- Funções Auxiliares (DOM e Manipulação de String) ---
 
-// Função para trocar dois caracteres de lugar numa string
 function trocarCaracteres(str, i, j) {
     let arrayDeChars = str.split('');
     let temp = arrayDeChars[i];
@@ -90,21 +120,19 @@ function trocarCaracteres(str, i, j) {
     return arrayDeChars.join('');
 }
 
-// Atualiza o HTML com os resultados do trabalho
 function exibirResultados(caminho, totalTestados) {
-    document.getElementById('path').innerText = caminho.length > 0 ? caminho.join(' -> ') : "Já estava resolvido!";
+    document.getElementById('path').innerText = caminho.length > 0 ? caminho.join(' -> ') : "Já resolvido!";
     document.getElementById('moves').innerText = caminho.length;
     document.getElementById('testedStates').innerText = totalTestados;
 }
 
-// Desenha a grade inicial no HTML
 function desenharTabuleiro(estado) {
     const board = document.getElementById('board');
-    board.innerHTML = ''; // Limpa o tabuleiro
+    board.innerHTML = ''; 
 
     for (let i = 0; i < 9; i++) {
         let numero = estado[i];
-        let tile = document.createElement('div');
+        let tile = document.createElement('div'); // Manipulação de DOM [cite: 208]
         tile.classList.add('tile');
         
         if (numero === '0') {
@@ -113,8 +141,6 @@ function desenharTabuleiro(estado) {
         } else {
             tile.innerText = numero;
         }
-        
         board.appendChild(tile);
     }
 }
-
