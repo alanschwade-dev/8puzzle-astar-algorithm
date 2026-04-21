@@ -1,6 +1,6 @@
 const estadoObjetivo = "123456780";
 
-// Mapeamento dos vizinhos: Regras de transição respeitando as bordas [cite: 103]
+// Mapeamento dos vizinhos regras de transição
 const movimentosValidos = {
     0: [1, 3],
     1: [0, 2, 4],
@@ -13,8 +13,8 @@ const movimentosValidos = {
     8: [5, 7]
 };
 
-// Função para calcular a Heurística h(n) - Distância de Manhattan [cite: 312, 408]
-function calcularManhattan(estado) {
+// Calculo de heuristica
+function calcularH(estado) {
     const objetivoPos = {
         '1': [0, 0], '2': [0, 1], '3': [0, 2],
         '4': [1, 0], '5': [1, 1], '6': [1, 2],
@@ -30,7 +30,7 @@ function calcularManhattan(estado) {
             let atualY = i % 3;
             // Posição onde a peça deveria estar
             let [objX, objY] = objetivoPos[num];
-            // Soma das distâncias horizontais e verticais [cite: 408]
+            // Soma das distâncias horizontais e verticais
             distanciaTotal += Math.abs(atualX - objX) + Math.abs(atualY - objY);
         }
     }
@@ -50,32 +50,32 @@ function iniciarBusca() {
     resolverAStar(input);
 }
 
-// Algoritmo A* (Busca pela melhor escolha) [cite: 904-906]
+// Algoritmo A*
 function resolverAStar(estadoInicial) {
-    // A estrutura armazena g(n), h(n) e f(n) = g(n) + h(n) [cite: 340, 906]
+    // armazena g(n), h(n) e f(n) = g(n) + h(n)
     let fila = [{ 
         estado: estadoInicial, 
         caminho: [], 
         posicaoZero: estadoInicial.indexOf('0'),
-        g: 0, // Custo do nó inicial até n [cite: 907]
-        h: calcularManhattan(estadoInicial), // Estimativa de custo até a meta [cite: 908]
-        f: calcularManhattan(estadoInicial) // f(n) = g(n) + h(n)
+        g: 0, // Custo do nó inicial até n
+        h: calcularH(estadoInicial), // Estimativa de custo até a meta
+        f: calcularH(estadoInicial) // f(n) = g(n) + h(n)
     }];
     
-    // Conjunto CLOSED para evitar repetições e loops [cite: 1626, 1651]
+    // Conjunto CLOSED para evitar repetições e loop
     let visitados = new Set();
     visitados.add(estadoInicial);
 
     let estadosTestados = 0;
 
     while (fila.length > 0) {
-        // Simulação de Fila de Prioridade: escolhe o menor f(n) [cite: 1631, 1636]
+        // Simulação de Fila de Prioridade: escolhe o menor f(n)
         fila.sort((a, b) => a.f - b.f);
         
         let atual = fila.shift();
         estadosTestados++;
 
-        // Checa se o estado n é o objetivo [cite: 1649]
+        // Checa se o estado n é o objetivo
         if (atual.estado === estadoObjetivo) {
             exibirResultados(atual.caminho, estadosTestados);
             return;
@@ -84,7 +84,7 @@ function resolverAStar(estadoInicial) {
         let movimentosPossiveis = movimentosValidos[atual.posicaoZero];
 
         for (let proximaPosicao of movimentosPossiveis) {
-            // Gera sucessores trocando o 0 com o vizinho [cite: 1653, 1657]
+            // Gera sucessores trocando o 0 com o vizinho
             let novoEstado = trocarCaracteres(atual.estado, atual.posicaoZero, proximaPosicao);
 
             if (!visitados.has(novoEstado)) {
@@ -92,16 +92,16 @@ function resolverAStar(estadoInicial) {
                 
                 let numeroMovido = atual.estado[proximaPosicao];
                 let novoG = atual.g + 1; // custo g(n) acumulado
-                let novoH = calcularManhattan(novoEstado); // custo h(n) estimado
+                let novoH = calcularH(novoEstado); // custo h(n) estimado
 
-                // Insere sucessor na lista OPEN com prioridade f(n) [cite: 1661]
+                // Insere sucessor na lista OPEN com prioridade f(n)
                 fila.push({
                     estado: novoEstado,
                     caminho: [...atual.caminho, numeroMovido],
                     posicaoZero: proximaPosicao,
                     g: novoG,
                     h: novoH,
-                    f: novoG + novoH // Equação f(n) = g(n) + h(n) [cite: 340]
+                    f: novoG + novoH // Equação f(n) = g(n) + h(n)
                 });
             }
         }
@@ -110,7 +110,7 @@ function resolverAStar(estadoInicial) {
     alert("Solução não encontrada!");
 }
 
-// --- Funções Auxiliares (DOM e Manipulação de String) ---
+
 
 function trocarCaracteres(str, i, j) {
     let arrayDeChars = str.split('');
@@ -132,7 +132,7 @@ function desenharTabuleiro(estado) {
 
     for (let i = 0; i < 9; i++) {
         let numero = estado[i];
-        let tile = document.createElement('div'); // Manipulação de DOM [cite: 208]
+        let tile = document.createElement('div'); 
         tile.classList.add('tile');
         
         if (numero === '0') {
